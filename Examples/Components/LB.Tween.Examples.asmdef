@@ -1,0 +1,15 @@
+{
+    "name": "LB.Tween.Examples",
+    "references": [
+        "GUID:78f148ba935f69d48be23cd9ba3ad779"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
