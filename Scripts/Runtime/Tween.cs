@@ -16,6 +16,8 @@ namespace LB.Tween
 		public float Overshoot;
 		[MarshalAs(UnmanagedType.U1)]
 		public bool Invert;
+		[MarshalAs(UnmanagedType.U1)]
+		public bool IsPaused;
 
 		public float NormalisedTime => CurrentSecs / TotalSecs;
 		public float Start => Invert ? 1f : 0f;
@@ -33,6 +35,7 @@ namespace LB.Tween
 			Direction = 1f;
 			Overshoot = 0f;
 			Invert = false;
+			IsPaused = false;
 		}
 
 		public Tween(float secs, EaseType ease, LoopType loop)

@@ -105,6 +105,9 @@ namespace LB.Tween
 			public void Execute(int index)
 			{
 				var tween = Tweens[index];
+				if(tween.IsPaused)
+					return;
+
 				var direction = tween.Direction;
 				tween.CurrentSecs += direction * DeltaT;
 				tween.Value = tween.TweenFunc.Invoke(tween.Start, tween.End, tween.NormalisedTime);
@@ -188,9 +191,35 @@ namespace LB.Tween
 			return id;
 		}
 
+		public void PauseTween(int id)
+		{
+			SetTweenPaused(id, true);
+		}
+
+		public void UnpauseTween(int id)
+		{
+			SetTweenPaused(id, false);
+		}
+
+		private void SetTweenPaused(int id, bool paused)
+		{
+			if(!m_tweens.IsCreated)
+				return;
+
+			if(!m_tweenIdToIndex.TryGetValue(id, out var index))
+				return;
+
+			var tween = m_tweens[index];
+			tween.IsPaused = paused;
+			m_tweens[index] = tween;
+		}
+
 		// Stop a tween using it's id
 		public void StopTween(int id)
 		{
+			if(!m_tweens.IsCreated)
+				return;
+
 			if(!m_tweenIdToIndex.TryGetValue(id, out var index))
 				return;
 
