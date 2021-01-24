@@ -52,7 +52,7 @@ namespace LB.Tween.Example
 			m_physicsTweenManager.Update(Time.deltaTime);
 		}
 
-		public int StartTween<T>(
+		public TweenRef StartTween<T>(
 			T start, 
 			T end, 
 			float secs, 
@@ -64,12 +64,12 @@ namespace LB.Tween.Example
 			return m_tweenManager.StartTween(start, end, secs, ease, loop, onUpdateCallback);
 		}
 
-		public void StopTween(int id)
+		public void StopTween(TweenRef id)
 		{
 			m_tweenManager.StopTween(id);
 		}
 
-		public int StartPhysicsTween<T>(
+		public TweenRef StartPhysicsTween<T>(
 			T start, 
 			T end, 
 			float secs, 
@@ -81,7 +81,7 @@ namespace LB.Tween.Example
 			return m_physicsTweenManager.StartTween(start, end, secs, ease, loop, onUpdateCallback);
 		}
 
-		public void StopPhysicsTween(int id)
+		public void StopPhysicsTween(TweenRef id)
 		{
 			m_physicsTweenManager.StopTween(id);
 		}

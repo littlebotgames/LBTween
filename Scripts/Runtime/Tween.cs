@@ -5,6 +5,7 @@ namespace LB.Tween
 {
 	public struct Tween
 	{
+		public int Id;
 		public float TotalSecs;
 		public FunctionPointer<EaseFunction> TweenFunc;
 		public FunctionPointer<LoopFunction> LoopFunc;
@@ -23,9 +24,10 @@ namespace LB.Tween
 		public float Start => Invert ? 1f : 0f;
 		public float End => Invert ? 0f : 1f;
 
-		public Tween(float secs, 
+		public Tween(int id, float secs, 
 			FunctionPointer<EaseFunction> tweenFunc, FunctionPointer<LoopFunction> loopFunc)
 		{
+			Id = id;
 			TotalSecs = secs;
 			TweenFunc = tweenFunc;
 			LoopFunc = loopFunc;
@@ -38,8 +40,8 @@ namespace LB.Tween
 			IsPaused = false;
 		}
 
-		public Tween(float secs, EaseType ease, LoopType loop)
-			: this(secs, EaseUtils.GetFunction(ease), LoopUtils.GetFunction(loop))
+		public Tween(int id, float secs, EaseType ease, LoopType loop)
+			: this(id, secs, EaseUtils.GetFunction(ease), LoopUtils.GetFunction(loop))
 		{
 		}
 	}

@@ -1,43 +1,58 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
+using Debug = UnityEngine.Debug;
 
 namespace LB.Tween
 {
-	public abstract class TweenData
+	public readonly struct TweenRef
 	{
-		public int Id { get; private set; }
-		public abstract void Update(float easeValue);
+		public readonly int Id;
+		public readonly int Index;		
 
-		public TweenData(int id)
+		public TweenRef(int id, int index)
 		{
 			Id = id;
+			Index = index;			
 		}
 	}
 
+	public abstract class TweenData
+	{
+		public abstract void Update(float easeValue);
+		public abstract void ReturnToPool();
+	}
+
+	public delegate T GetValueFunction<T>(T start, T end, float easeValue) where T : struct;
 	public sealed class TweenData<T> : TweenData where T : struct
 	{
 		public delegate void UpdateCallback(int id, T value, object context);
-		public delegate T GetValueFunction(T start, T end, float easeValue);
 
+		private int m_id;
 		private T m_start;
 		private T m_end;
 		private T m_value;
 		public T Value => m_value;
 		
-		private GetValueFunction m_getValue;
+		private readonly GetValueFunction<T> m_getValue;
 		private UpdateCallback m_onUpdate;		
 		private object m_context;
 
-		public TweenData(int id, T start, T end, GetValueFunction getValue, UpdateCallback onUpdate, object context = null)
-			: base(id)
+		public TweenData(GetValueFunction<T> getValue)
 		{
-			m_start = start;
-			m_end = end;
 			m_getValue = getValue;
+		}
+
+		public void SetData(int id, T start, T end, UpdateCallback onUpdate, object context = null)
+		{
+			m_id = id;
+			m_start = start;
+			m_value = m_start;
+			m_end = end;
 			m_onUpdate = onUpdate;			
 			m_context = context;
 		}
@@ -45,23 +60,94 @@ namespace LB.Tween
 		public override void Update(float easeValue)
 		{
 			m_value = m_getValue(m_start, m_end, easeValue);
-			m_onUpdate?.Invoke(Id, m_value, m_context);
+			m_onUpdate?.Invoke(m_id, m_value, m_context);
+		}
+
+		public override void ReturnToPool()
+		{
+			TweenDataRegistry.ReturnToPool(this);
 		}
 	}
 
-	// The lookup for the GetValue functions, add more functions here if / when required
-	public static class GetValueFunctions
+	public static class TweenDataRegistry
 	{
-		public static readonly Dictionary<Type, Delegate> Lookup = new Dictionary<Type, Delegate>
-		{
-			{ typeof(float), new TweenData<float>.GetValueFunction(GetValueFloat) },
-			{ typeof(Vector2), new TweenData<Vector2>.GetValueFunction(GetValueVector2) },
-			{ typeof(Vector3), new TweenData<Vector3>.GetValueFunction(GetValueVector3) },
-			{ typeof(Quaternion), new TweenData<Quaternion>.GetValueFunction(GetValueQuaternion) },
-			{ typeof(Color), new TweenData<Color>.GetValueFunction(GetValueColor) },
-			{ typeof(Color32), new TweenData<Color32>.GetValueFunction(GetValueColor32) },
-		};
+		// The lookup for the GetValue functions, add more functions here if / when required
+		private static readonly Dictionary<Type, Delegate> m_getValueFunctions = new Dictionary<Type, Delegate>();
+		private static Dictionary<Type, List<(TweenData TweenData, bool IsPooled)>> m_objectPools = new Dictionary<Type, List<(TweenData, bool)>>();
 
+		static TweenDataRegistry()
+		{
+			RegisterBuiltinTypes();
+		}
+
+		private static void RegisterBuiltinTypes()
+		{
+			RegisterTweenDataType<float>(GetValueFloat);
+			RegisterTweenDataType<Vector2>(GetValueVector2);
+			RegisterTweenDataType<Vector3>(GetValueVector3);
+			RegisterTweenDataType<Quaternion>(GetValueQuaternion);
+			RegisterTweenDataType<Color>(GetValueColor);
+			RegisterTweenDataType<Color32>(GetValueColor32);
+		}
+
+		private static GetValueFunction<T> GetGetValueFunction<T>() where T : struct
+		{
+			Debug.Assert(m_getValueFunctions.ContainsKey(typeof(T)), $"TweenData type {typeof(T)} has not been registered");
+			return (GetValueFunction<T>)m_getValueFunctions[typeof(T)];
+		}
+		
+		// Used to register any additional tween data types with a function to lerp the value based on the ease value
+		public static void RegisterTweenDataType<T>(GetValueFunction<T> getValueFunction, int initPoolSize = 10) where T : struct
+		{
+			var type = typeof(T);
+			m_getValueFunctions[type] = getValueFunction;
+
+			var newPool = new List<(TweenData, bool)>(initPoolSize);
+			for(int i = 0; i < initPoolSize; ++i)
+			{
+				newPool.Add((new TweenData<T>(getValueFunction), true));
+			}
+			m_objectPools[type] = newPool;
+		}
+
+		// Get a tween data of type from pool, this will create a new one if the pool has none free
+		public static TweenData<T> GetFromPool<T>() where T : struct
+		{
+			var pool = m_objectPools[typeof(T)];
+			for (int i = 0; i < pool.Count; ++i)
+			{
+				var poolItem = pool[i];
+				if(!poolItem.IsPooled)
+					continue;
+
+				poolItem.IsPooled = false;
+				pool[i] = poolItem;
+				return (TweenData<T>)pool[i].TweenData;
+			}
+
+			// Failed to find free object so create a new one
+			var getValueFunction = GetGetValueFunction<T>();
+			var newTweenData = new TweenData<T>(getValueFunction);
+			pool.Add((newTweenData, false));
+			return newTweenData;
+		}
+
+		// Return the TweenData object to the pool
+		public static void ReturnToPool<T>(TweenData<T> tweenData) where T : struct
+		{
+			var pool = m_objectPools[typeof(T)];
+			for (int i = 0; i < pool.Count; ++i)
+			{
+				var poolItem = pool[i];
+				if(poolItem.TweenData != tweenData)
+					continue;
+
+				poolItem.IsPooled = true;
+				pool[i] = poolItem;
+			}
+		}
+
+		// Builtin GetValue functions
 		public static float GetValueFloat(float start, float end, float easeValue)
 		{
 			return Mathf.LerpUnclamped(start, end, easeValue);
@@ -99,12 +185,16 @@ namespace LB.Tween
 		private struct UpdateEaseValuesJob : IJobParallelFor
 		{
 			[NativeDisableParallelForRestriction]
-			public NativeList<Tween> Tweens;
+			public NativeArray<Tween> Tweens;
 			public float DeltaT;
 
 			public void Execute(int index)
 			{
 				var tween = Tweens[index];
+
+				if(tween.Id == InvalidId)
+					return;
+
 				if(tween.IsPaused)
 					return;
 
@@ -120,15 +210,18 @@ namespace LB.Tween
 			}
 		}
 
-		private NativeList<Tween> m_tweens;
-		private List<TweenData> m_tweenDatas = new List<TweenData>();
+		private const int c_maxTweens = 100;
+		private NativeArray<Tween> m_tweens;
+		private TweenData[] m_tweenDatas;
 
-		private Dictionary<int, int> m_tweenIdToIndex = new Dictionary<int, int>();
-		private int m_nextId;
+		public const int InvalidId = 0;
+		private int m_nextId = 1;
+		private int m_tweensLength;
 
-		public TweenRunner()
+		public TweenRunner(int maxTweens = c_maxTweens)
 		{
-			m_tweens = new NativeList<Tween>(Allocator.Persistent);
+			m_tweens = new NativeArray<Tween>(maxTweens, Allocator.Persistent);
+			m_tweenDatas = new TweenData[maxTweens];
 		}
 
 		public void Dispose()
@@ -145,19 +238,22 @@ namespace LB.Tween
 				Tweens = m_tweens,
 				DeltaT = deltaT
 			};
-			job.Run(m_tweens.Length);
+			job.Run(m_tweensLength);
 
-			for(int i = 0, length = m_tweens.Length; i < length; ++i)
+			for(int i = 0, length = m_tweensLength; i < length; ++i)
 			{
 				var tween = m_tweens[i];
+				if(tween.Id == InvalidId)
+					continue;
+
 				var tweenData = m_tweenDatas[i];
 				tweenData.Update(tween.Value);
 			}
 		}
 
 		// Start a tween. This will return the id of the tween which is used to stop it.
-		// If you need to support a new type then add it to the GetValueFunctions lookup and functions.
-		public int StartTween<T>(
+		// If you need to support a new type then register it with TweenDataUtils.RegisterTweenDataType
+		public TweenRef StartTween<T>(
 			T start, 
 			T end, 
 			float secs, 
@@ -168,75 +264,127 @@ namespace LB.Tween
 			where T : struct
 		{
 			var id = m_nextId++;
-
-			var tweenIndex = m_tweens.Length;
+			var index = GetFreeTweenIndex();
 			var tween = new Tween(
+				id,
 				secs,
 				ease,
 				loop
 			);
-			m_tweens.Add(tween);
+			m_tweens[index] = tween;
 			
-			var tweenData = new TweenData<T>(
+			var tweenData = TweenDataRegistry.GetFromPool<T>();
+			tweenData.SetData(
 				id,
 				start,
 				end,
-				(TweenData<T>.GetValueFunction)GetValueFunctions.Lookup[typeof(T)],
 				onUpdateCallback,
 				context
 			);
-			m_tweenDatas.Add(tweenData);
-			m_tweenIdToIndex[id] = tweenIndex;
+			m_tweenDatas[index] = tweenData;
 
-			return id;
+			m_tweensLength = Mathf.Max(m_tweensLength, index + 1);
+
+			// Return both the id and index so we can look up the tween by the index but also validate that
+			// we are not using stale ids from previously stopped 
+			return new TweenRef(id, index);
 		}
 
-		public void PauseTween(int id)
+		// Find the next free tween in the list to use and return it's index
+		private int GetFreeTweenIndex()
+		{
+			for(int i = 0; i < m_tweens.Length; ++i)
+			{
+				if(m_tweens[i].Id == 0)
+					return i;
+			}
+
+			Debug.LogAssertion($"Failed to find free tween index, you need to increase the size of maxTween > {m_tweens.Length}");
+			return -1;
+		}
+
+		public void PauseTween(in TweenRef id)
 		{
 			SetTweenPaused(id, true);
 		}
 
-		public void UnpauseTween(int id)
+		public void UnpauseTween(in TweenRef id)
 		{
 			SetTweenPaused(id, false);
 		}
 
-		private void SetTweenPaused(int id, bool paused)
+		// Pause / Unpause a tween using it's id
+		private void SetTweenPaused(in TweenRef id, bool paused)
 		{
 			if(!m_tweens.IsCreated)
 				return;
 
-			if(!m_tweenIdToIndex.TryGetValue(id, out var index))
-				return;
+			ValidateTweenId(id);
 
-			var tween = m_tweens[index];
+			var tween = m_tweens[id.Index];
 			tween.IsPaused = paused;
-			m_tweens[index] = tween;
+			m_tweens[id.Index] = tween;
 		}
 
 		// Stop a tween using it's id
-		public void StopTween(int id)
+		public void StopTween(in TweenRef id)
 		{
 			if(!m_tweens.IsCreated)
 				return;
 
-			if(!m_tweenIdToIndex.TryGetValue(id, out var index))
-				return;
+			ValidateTweenId(id);
 
-			m_tweenIdToIndex.Remove(id);
-			m_tweens.RemoveAt(index);
-			m_tweenDatas.RemoveAt(index);
+			var tween = m_tweens[id.Index];
+			tween.Id = InvalidId;
+			m_tweens[id.Index] = tween;
+
+			m_tweenDatas[id.Index].ReturnToPool();
+			m_tweenDatas[id.Index] = null;
+
+			if(id.Index == m_tweensLength - 1)
+			{
+				// Recalculate the tweens length as the last one has been stopped
+				do
+				{
+					--m_tweensLength;
+				}
+				while(m_tweensLength > 0 && m_tweens[m_tweensLength - 1].Id != InvalidId);
+			}
+			
 		}
 
 		// Call this function to get the current value of the tween. This will be slower than
-		// using an onUpdate callback as it will have to look up the tween by id
-		public T GetTweenValue<T>(int id) where T : struct
+		// using an onUpdate callback
+		public T GetTweenValue<T>(in TweenRef id) where T : struct
 		{
-			if(!m_tweenIdToIndex.TryGetValue(id, out var index))
+			if(!m_tweens.IsCreated)
 				return default;
 
-			var typedTweenData = (TweenData<T>)m_tweenDatas[index];
+			ValidateTweenId(id);
+
+			var typedTweenData = (TweenData<T>)m_tweenDatas[id.Index];
 			return typedTweenData.Value;
+		}
+
+		public int GetNumberOfRunningTweens()
+		{
+			var numTweens = 0;
+			for(var i = 0; i < m_tweensLength; ++i)
+			{
+				if(m_tweens[i].Id != InvalidId)
+				{
+					++numTweens;
+				}
+			}
+
+			return numTweens;
+		}
+
+		[Conditional("UNITY_ASSERTIONS")]
+		private void ValidateTweenId(in TweenRef id)
+		{
+			var tween = m_tweens[id.Index];
+			Debug.Assert(tween.Id == id.Id, $"Tween Id {id.Id} does not match the tween at index Id {tween.Id}, you are using a old id for a stopped tween");
 		}
 	}
 }

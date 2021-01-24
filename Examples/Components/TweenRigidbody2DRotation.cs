@@ -16,7 +16,7 @@ namespace LB.Tween.Example
 		[SerializeField]
 		private TweenParams m_tweenParams;
 
-		private int m_tweenId;
+		private TweenRef m_tweenRef;
 		private float m_startRotation;
 
 		public Vector2 Velocity => Vector2.zero;
@@ -41,7 +41,7 @@ namespace LB.Tween.Example
 		private void OnDisable()
 		{
 			var tweenManager = TweenManager.Instance;
-			tweenManager.StopPhysicsTween(m_tweenId);
+			tweenManager.StopPhysicsTween(m_tweenRef);
 		}
 
 		private void OnTweenFixedUpdate(int id, float value, object context)
