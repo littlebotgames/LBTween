@@ -12,12 +12,19 @@ namespace LB.Tween
 	public readonly struct TweenRef
 	{
 		public readonly int Id;
-		public readonly int Index;		
+		public readonly int Index;
+
+		public static readonly TweenRef Invalid = new TweenRef(TweenRunner.InvalidId, -1);
 
 		public TweenRef(int id, int index)
 		{
 			Id = id;
 			Index = index;			
+		}
+
+		public bool IsValid()
+		{
+			return Id != Invalid.Id;
 		}
 	}
 
