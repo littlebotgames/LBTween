@@ -43,8 +43,11 @@ namespace LB.Tween
 				if(tween.Id == InvalidId)
 					return;
 
-				if(tween.IsPaused)
+				if(tween.IsFinished)
 					return;
+
+				if(tween.IsPaused)
+					return;				
 
 				var direction = tween.Direction;
 				tween.CurrentSecs += direction * DeltaT;
@@ -112,6 +115,7 @@ namespace LB.Tween
 		{
 			if(tweenParams.TweenSecs <= 0f)
 			{
+				Debug.LogAssertion($"TweenSecs has not be set, tween is invalid");
 				return TweenRef.Invalid;
 			}
 
