@@ -1,12 +1,15 @@
 ﻿using System.Runtime.InteropServices;
 using Unity.Burst;
+using Unity.Mathematics;
 
 namespace LB.Tween
 {
 	public struct Tween
 	{
 		public int Id;
-		public float TotalSecs;
+		public float TweenSecs;
+		public float StartDelaySecs;
+		public float EndDelaySecs;
 		public FunctionPointer<EaseFunction> TweenFunc;
 		public FunctionPointer<LoopFunction> LoopFunc;
 		public float CurrentSecs;
@@ -20,17 +23,28 @@ namespace LB.Tween
 		[MarshalAs(UnmanagedType.U1)]
 		public bool IsPaused;
 
-		public float NormalisedTime => CurrentSecs / TotalSecs;
+		public float TotalSecs => StartDelaySecs + TweenSecs + EndDelaySecs;
+		public float NormalisedTime
+		{
+			get
+			{
+				// NormalisedTime will give us 0 in all the start delay and 1 in all the end delay 
+				// and between 0 - 1 during the tween section
+				var clampedSecs = math.clamp(CurrentSecs, StartDelaySecs, TotalSecs - EndDelaySecs) - StartDelaySecs;
+				return clampedSecs / TweenSecs;
+			}
+		}
 		public float Start => Invert ? 1f : 0f;
 		public float End => Invert ? 0f : 1f;
 
-		public Tween(int id, float secs, 
-			FunctionPointer<EaseFunction> tweenFunc, FunctionPointer<LoopFunction> loopFunc)
+		public Tween(int id, in TweenParams tweenParams)
 		{
 			Id = id;
-			TotalSecs = secs;
-			TweenFunc = tweenFunc;
-			LoopFunc = loopFunc;
+			TweenSecs = tweenParams.TweenSecs;
+			StartDelaySecs = tweenParams.StartDelaySecs;
+			EndDelaySecs = tweenParams.EndDelaySecs;
+			TweenFunc = EaseUtils.GetFunction(tweenParams.Ease);
+			LoopFunc = LoopUtils.GetFunction(tweenParams.Loop);
 			CurrentSecs = 0f;
 			Value = 0f;
 			IsFinished = false;
@@ -38,11 +52,6 @@ namespace LB.Tween
 			Overshoot = 0f;
 			Invert = false;
 			IsPaused = false;
-		}
-
-		public Tween(int id, float secs, EaseType ease, LoopType loop)
-			: this(id, secs, EaseUtils.GetFunction(ease), LoopUtils.GetFunction(loop))
-		{
 		}
 	}
 }

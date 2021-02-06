@@ -31,9 +31,7 @@ namespace LB.Tween.Example
 			tweenManager.StartPhysicsTween(
 				Vector2.zero,
 				m_target,
-				m_tweenParams.Secs,
-				m_tweenParams.Ease,
-				m_tweenParams.Loop,
+				m_tweenParams,
 				OnTweenFixedUpdate
 			);
 		}

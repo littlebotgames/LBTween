@@ -14,14 +14,18 @@ class EditorTests
 		var tweenRefs = new List<TweenRef>(numTweens);
 
 		// Start a bunch of tweens running
+		var tweenParams = new TweenParams
+		{
+			TweenSecs = 10f,
+			Ease = EaseType.Linear,
+			Loop = LoopType.PingPong
+		};
 		for(var i = 0; i < numTweens; ++i)
 		{
 			var tweenRef = runner.StartTween(
 				0f,
 				10f,
-				10f,
-				EaseType.Linear,
-				LoopType.PingPong,
+				tweenParams,
 				null
 			);
 			tweenRefs.Add(tweenRef);
@@ -72,12 +76,16 @@ class EditorTests
 
 		// Make sure a tween of that type can be started and updated
 		var startValue = (TestType)1f;
+		var tweenParams = new TweenParams
+		{
+			TweenSecs = 10f,
+			Ease = EaseType.Linear,
+			Loop = LoopType.PingPong
+		};
 		var tweenRef = runner.StartTween<TestType>(
 			startValue,
 			10f,
-			10f,
-			EaseType.Linear,
-			LoopType.PingPong,
+			tweenParams,
 			null
 		);
 

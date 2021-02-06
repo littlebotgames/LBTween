@@ -55,13 +55,11 @@ namespace LB.Tween.Example
 		public TweenRef StartTween<T>(
 			T start, 
 			T end, 
-			float secs, 
-			EaseType ease, 
-			LoopType loop, 
+			in TweenParams tweenParams, 
 			TweenData<T>.UpdateCallback onUpdateCallback)
 			where T : struct
 		{
-			return m_tweenManager.StartTween(start, end, secs, ease, loop, onUpdateCallback);
+			return m_tweenManager.StartTween(start, end, tweenParams, onUpdateCallback);
 		}
 
 		public void StopTween(TweenRef id)
@@ -72,13 +70,11 @@ namespace LB.Tween.Example
 		public TweenRef StartPhysicsTween<T>(
 			T start, 
 			T end, 
-			float secs, 
-			EaseType ease, 
-			LoopType loop, 
+			in TweenParams tweenParams, 
 			TweenData<T>.UpdateCallback onUpdateCallback)
 			where T : struct
 		{
-			return m_physicsTweenManager.StartTween(start, end, secs, ease, loop, onUpdateCallback);
+			return m_physicsTweenManager.StartTween(start, end, tweenParams, onUpdateCallback);
 		}
 
 		public void StopPhysicsTween(TweenRef id)
