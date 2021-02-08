@@ -234,6 +234,9 @@ namespace LB.Tween
 		[Conditional("UNITY_ASSERTIONS")]
 		private void ValidateTweenId(in TweenRef id)
 		{
+			if(!id.IsValid())
+				return;
+
 			var tween = m_tweens[id.Index];
 			Debug.Assert(tween.Id == id.Id, $"Tween Id {id.Id} does not match the tween at index Id {tween.Id}, you are using a old id for a stopped tween");
 		}
