@@ -45,7 +45,7 @@ namespace LB.Tween
 			EndDelaySecs = tweenParams.EndDelaySecs;
 			TweenFunc = EaseUtils.GetFunction(tweenParams.Ease);
 			LoopFunc = LoopUtils.GetFunction(tweenParams.Loop);
-			CurrentSecs = 0f;
+			CurrentSecs = tweenParams.StartOffsetSecs;
 			Value = 0f;
 			IsFinished = false;
 			Direction = 1f;
