@@ -28,7 +28,7 @@ namespace LB.Tween.Example
 			// Tween is a displacement not world posiation so store start pos to add to it
 			m_startPos = m_rigidbody.position;
 			var tweenManager = TweenManager.Instance;
-			tweenManager.StartPhysicsTween(
+			m_tweenRef = tweenManager.StartPhysicsTween(
 				Vector2.zero,
 				m_target,
 				m_tweenParams,
