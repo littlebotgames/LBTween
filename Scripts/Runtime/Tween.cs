@@ -7,11 +7,11 @@ namespace LB.Tween
 	public struct Tween
 	{
 		public int Id;
-		public float TweenSecs;
-		public float StartDelaySecs;
-		public float EndDelaySecs;
-		public FunctionPointer<EaseFunction> TweenFunc;
-		public FunctionPointer<LoopFunction> LoopFunc;
+		public readonly float TweenSecs;
+		public readonly float StartDelaySecs;
+		public readonly float EndDelaySecs;
+		public readonly FunctionPointer<EaseFunction> TweenFunc;
+		public readonly FunctionPointer<LoopFunction> LoopFunc;
 		public float CurrentSecs;
 		public float Value;
 		[MarshalAs(UnmanagedType.U1)]
@@ -23,8 +23,8 @@ namespace LB.Tween
 		[MarshalAs(UnmanagedType.U1)]
 		public bool IsPaused;
 
-		public float TotalSecs => StartDelaySecs + TweenSecs + EndDelaySecs;
-		public float NormalisedTime
+		public readonly float TotalSecs => StartDelaySecs + TweenSecs + EndDelaySecs;
+		public readonly float NormalisedTime
 		{
 			get
 			{
@@ -34,8 +34,8 @@ namespace LB.Tween
 				return clampedSecs / TweenSecs;
 			}
 		}
-		public float Start => Invert ? 1f : 0f;
-		public float End => Invert ? 0f : 1f;
+		public readonly float Start => Invert ? 1f : 0f;
+		public readonly float End => Invert ? 0f : 1f;
 
 		public Tween(int id, in TweenParams tweenParams)
 		{

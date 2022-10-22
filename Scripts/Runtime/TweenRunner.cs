@@ -99,7 +99,7 @@ namespace LB.Tween
 
 				var tweenData = m_tweenDatas[i];
 				var normT = tween.NormalisedTime;
-				tweenData.Update(tween.Value);
+				tweenData.Update(tween);
 			}
 		}
 
@@ -109,7 +109,8 @@ namespace LB.Tween
 			T start, 
 			T end, 
 			in TweenParams tweenParams, 
-			TweenData<T>.UpdateCallback onUpdateCallback, 
+			TweenData<T>.OnUpdateCallback onUpdateCallback,
+			TweenData<T>.OnFinishedCallback onFinishedCallback = null,
 			object context = null)
 			where T : struct
 		{
@@ -130,6 +131,7 @@ namespace LB.Tween
 				start,
 				end,
 				onUpdateCallback,
+				onFinishedCallback,
 				context
 			);
 			m_tweenDatas[index] = tweenData;
@@ -177,7 +179,7 @@ namespace LB.Tween
 			m_tweens[id.Index] = tween;
 		}
 
-		// Stop a tween using it's id
+		// Stop a tween using it's id.
 		public void StopTween(in TweenRef id)
 		{
 			if(!m_tweens.IsCreated)
@@ -194,14 +196,38 @@ namespace LB.Tween
 
 			if(id.Index == m_tweensLength - 1)
 			{
-				// Recalculate the tweens length as the last one has been stopped
-				do
+				// Recalculate the tweens length as the last one has been stopped.
+				while (m_tweensLength > 0 && m_tweens[m_tweensLength - 1].Id != InvalidId)
 				{
 					--m_tweensLength;
 				}
-				while(m_tweensLength > 0 && m_tweens[m_tweensLength - 1].Id != InvalidId);
-			}
-			
+			}			
+		}
+
+		// Reset a tween back to the beginning using it's id.
+		public void RestartTween(in TweenRef id)
+		{
+			if (!m_tweens.IsCreated)
+				return;
+
+			ValidateTweenId(id);
+
+			var tween = m_tweens[id.Index];
+			tween.Value = 0f;
+			tween.CurrentSecs = 0f;
+			tween.IsFinished = false;
+			m_tweens[id.Index] = tween;
+		}
+
+		public void SetTweenDirection(in TweenRef id, float direction)
+		{
+			if (!m_tweens.IsCreated)
+				return;
+
+			ValidateTweenId(id);
+			var tween = m_tweens[id.Index];
+			tween.Direction = direction;
+			m_tweens[id.Index] = tween;
 		}
 
 		// Call this function to get the current value of the tween. This will be slower than

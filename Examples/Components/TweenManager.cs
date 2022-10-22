@@ -56,10 +56,11 @@ namespace LB.Tween.Example
 			T start, 
 			T end, 
 			in TweenParams tweenParams, 
-			TweenData<T>.UpdateCallback onUpdateCallback)
+			TweenData<T>.OnUpdateCallback onUpdateCallback,
+			TweenData<T>.OnFinishedCallback onFinishedCallback = null)
 			where T : struct
 		{
-			return m_tweenManager.StartTween(start, end, tweenParams, onUpdateCallback);
+			return m_tweenManager.StartTween(start, end, tweenParams, onUpdateCallback, onFinishedCallback);
 		}
 
 		public void StopTween(TweenRef id)
@@ -71,10 +72,11 @@ namespace LB.Tween.Example
 			T start, 
 			T end, 
 			in TweenParams tweenParams, 
-			TweenData<T>.UpdateCallback onUpdateCallback)
+			TweenData<T>.OnUpdateCallback onUpdateCallback,
+			TweenData<T>.OnFinishedCallback onFinishedCallback = null)
 			where T : struct
 		{
-			return m_physicsTweenManager.StartTween(start, end, tweenParams, onUpdateCallback);
+			return m_physicsTweenManager.StartTween(start, end, tweenParams, onUpdateCallback, onFinishedCallback);
 		}
 
 		public void StopPhysicsTween(TweenRef id)
