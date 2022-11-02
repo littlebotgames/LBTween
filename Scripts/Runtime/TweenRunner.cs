@@ -98,8 +98,12 @@ namespace LB.Tween
 					continue;
 
 				var tweenData = m_tweenDatas[i];
-				var normT = tween.NormalisedTime;
 				tweenData.Update(tween);
+				if(tween.IsFinished)
+				{
+					// Tween is finished so stop it.
+					StopTween(new TweenRef(tween.Id, i));
+				}
 			}
 		}
 
